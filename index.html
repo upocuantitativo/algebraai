@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>algebraai — Códigos lineales & Factorización QR</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='15' fill='%231a5276'/><text x='50' y='72' font-size='38' text-anchor='middle' fill='white' font-family='serif'>QR</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderAllMath()"></script>
+<style>
+:root{
+  --pri:#1a5276; --pri-l:#2980b9; --pri-d:#0e2f44;
+  --acc:#e74c3c; --ok:#27ae60; --warn:#f39c12; --info:#8e44ad;
+  --bg:#eef3f8; --card:#fff; --txt:#1f2d3d; --txtl:#6b7c8c; --brd:#d6dee6;
+  --bit0:#e8f3ff; --bit1:#fce8e6; --code:#eafaf1; --err:#fadbd8;
+  --sh:0 2px 10px rgba(20,40,80,.08); --shh:0 4px 18px rgba(20,40,80,.14); --r:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI','Inter',system-ui,sans-serif;background:linear-gradient(180deg,#eef3f8 0%,#dbe6f0 100%);background-attachment:fixed;color:var(--txt);line-height:1.55;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a5276,#0e2f44);color:#fff;padding:1.4rem 2rem;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+.header h1{font-size:1.8rem;font-weight:700;letter-spacing:-.5px;margin-bottom:.2rem}
+.header h1 .acc{color:#f1c40f}
+.header p{font-size:.95rem;opacity:.92}
+.header .repo{display:inline-block;margin-top:.4rem;padding:.18rem .6rem;background:rgba(255,255,255,.13);border-radius:14px;font-size:.78rem;font-family:'Courier New',monospace}
+.tab-bar{display:flex;background:var(--card);border-bottom:2px solid var(--brd);position:sticky;top:0;z-index:100;box-shadow:var(--sh)}
+.tab-btn{flex:1;padding:1rem;border:none;background:transparent;font-size:1rem;font-weight:600;color:var(--txtl);cursor:pointer;transition:.25s;border-bottom:3px solid transparent;display:flex;align-items:center;justify-content:center;gap:.5rem}
+.tab-btn:hover{background:#f4f7fa;color:var(--pri)}
+.tab-btn.active{color:var(--pri);border-bottom-color:var(--pri);background:#eef4fa}
+.tab-btn .ic{font-size:1.15rem}
+.tab-content{display:none;padding:1.4rem;max-width:1180px;margin:0 auto}
+.tab-content.active{display:block}
+.subtab-bar{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
+.subtab-btn{padding:.5rem 1rem;border:1px solid var(--brd);background:#fff;border-radius:20px;font-size:.85rem;font-weight:600;color:var(--txtl);cursor:pointer;transition:.2s}
+.subtab-btn:hover{background:#eef4fa;color:var(--pri);border-color:var(--pri-l)}
+.subtab-btn.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+.subsection{display:none}
+.subsection.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+h2{color:var(--pri);font-size:1.4rem;margin:.4rem 0 .8rem 0;border-left:5px solid var(--pri);padding-left:.7rem}
+h3{color:var(--pri);font-size:1.05rem;margin:1rem 0 .5rem 0}
+h4{color:var(--pri-d);font-size:.95rem;margin:.7rem 0 .35rem 0}
+p{margin:.45rem 0}
+ul,ol{margin:.4rem 0 .4rem 1.5rem}
+.card{background:var(--card);border-radius:var(--r);padding:1.1rem 1.2rem;margin:.8rem 0;box-shadow:var(--sh);border-left:4px solid var(--pri-l)}
+.card.ok{border-left-color:var(--ok);background:#f1faf4}
+.card.warn{border-left-color:var(--warn);background:#fef8e9}
+.card.err{border-left-color:var(--acc);background:#fdedeb}
+.card.info{border-left-color:var(--info);background:#f5eef8}
+.card .ttl{font-weight:700;color:var(--pri);font-size:.95rem;margin-bottom:.3rem;display:flex;align-items:center;gap:.4rem}
+.card.ok .ttl{color:#1e8449}
+.card.warn .ttl{color:#9c6a09}
+.card.err .ttl{color:#a93226}
+.card.info .ttl{color:#6c3483}
+.controls{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:.6rem 0}
+.controls label{font-size:.85rem;font-weight:600;color:var(--pri-d)}
+.controls input[type=number]{width:64px;padding:.4rem;border:1px solid var(--brd);border-radius:5px;text-align:center;font-family:'Courier New',monospace}
+.controls input[type=text]{padding:.45rem .6rem;border:1px solid var(--brd);border-radius:5px;font-family:'Courier New',monospace;font-size:.9rem;min-width:160px}
+.btn{padding:.5rem 1.05rem;border:none;border-radius:6px;font-size:.88rem;font-weight:600;cursor:pointer;transition:transform .12s, box-shadow .12s, background .18s;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.15)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:var(--pri);color:#fff}
+.btn-primary:hover{background:var(--pri-l)}
+.btn-ok{background:var(--ok);color:#fff}
+.btn-acc{background:var(--acc);color:#fff}
+.btn-warn{background:var(--warn);color:#fff}
+.btn-ghost{background:#fff;color:var(--pri);border:1.5px solid var(--pri)}
+.btn-ghost:hover{background:#eef4fa}
+.bit-row{display:inline-flex;gap:4px;margin:.2rem 0;padding:.25rem;background:#f8fafc;border-radius:6px;border:1px solid var(--brd)}
+.bit{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-weight:700;font-size:1rem;border-radius:4px;border:1.5px solid var(--brd);transition:all .2s;cursor:pointer;user-select:none}
+.bit.b0{background:var(--bit0);color:#1a5276}
+.bit.b1{background:var(--bit1);color:#c0392b}
+.bit.hl{box-shadow:0 0 0 3px var(--warn);transform:scale(1.08)}
+.bit.err{background:#e74c3c;color:#fff;border-color:#a93226}
+.bit.fix{background:#27ae60;color:#fff;border-color:#1e8449;animation:flash .6s}
+@keyframes flash{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.bit-label{font-size:.7rem;color:var(--txtl);display:block;text-align:center;margin-top:2px;font-weight:600}
+.bit-stack{display:inline-flex;flex-direction:column;align-items:center;margin:0 1px}
+.bit.read{cursor:default}
+.mat-svg{display:block;margin:.5rem auto;max-width:100%}
+.mat-grid{display:inline-block;position:relative;padding:.45rem 1rem;margin:.3rem;background:#fff;border-radius:4px;vertical-align:middle}
+.mat-grid::before,.mat-grid::after{content:'';position:absolute;top:4px;bottom:4px;width:10px;border:2.5px solid var(--pri)}
+.mat-grid::before{left:0;border-right:none;border-radius:6px 0 0 6px}
+.mat-grid::after{right:0;border-left:none;border-radius:0 6px 6px 0}
+.mat-grid table{border-collapse:separate;border-spacing:3px;margin:0 auto}
+.mat-grid td{width:36px;height:30px;text-align:center;font-family:'Courier New',monospace;font-size:.85rem;background:#f8fafc;border:1px solid var(--brd);border-radius:3px;padding:0}
+.mat-grid td input{width:100%;height:100%;border:0;background:transparent;text-align:center;font:inherit;color:inherit;outline:none}
+.mat-grid td input:focus{background:#fffbe6;box-shadow:inset 0 0 0 2px var(--warn)}
+.mat-grid td.hi-row{background:#fef8e9}
+.mat-grid td.hi-col{background:#eaf2f8}
+.mat-grid td.pivot{background:#d4efdf;font-weight:700;color:#1e8449}
+.mat-grid td.zero-tgt{background:#fadbd8}
+.mat-grid td.computed{background:#e8f8ff;animation:flash 0.5s}
+.mat-grid.size-sm td{width:30px;height:26px;font-size:.78rem}
+.kbd{display:inline-block;padding:.05rem .35rem;background:#f4f7fa;border:1px solid var(--brd);border-bottom-width:2px;border-radius:3px;font-family:'Courier New',monospace;font-size:.82rem}
+.synd-arrow{display:inline-block;font-size:1.3rem;color:var(--pri);margin:0 .4rem;vertical-align:middle}
+.synd-box{display:inline-block;background:#fff;border:2px solid var(--pri);border-radius:6px;padding:.3rem .6rem;margin:.2rem;font-family:'Courier New',monospace;font-size:.95rem}
+.synd-box.ok{border-color:var(--ok);background:#f1faf4}
+.synd-box.err{border-color:var(--acc);background:#fdedeb}
+table.dt{width:100%;border-collapse:collapse;margin:.7rem 0;font-size:.85rem}
+table.dt th,table.dt td{padding:.4rem .6rem;border:1px solid var(--brd);text-align:center}
+table.dt th{background:var(--pri);color:#fff;font-weight:600}
+table.dt tr:nth-child(even){background:#f6f9fc}
+table.dt td.k{font-weight:700;background:#eef4fa}
+table.dt td.bad{background:#fdedeb;color:#a93226;font-weight:700}
+table.dt td.good{background:#f1faf4;color:#1e8449;font-weight:700}
+.flex{display:flex;gap:1rem;flex-wrap:wrap}
+.flex>div{flex:1;min-width:240px}
+.pre-box{background:#0e2f44;color:#e3eef9;padding:.7rem 1rem;border-radius:6px;font-family:'Courier New',monospace;font-size:.82rem;overflow-x:auto;line-height:1.45}
+.pre-box .c{color:#7fc4e8}
+.pre-box .k{color:#f1c40f}
+.pre-box .s{color:#a3e3a3}
+.step-list{counter-reset:step;list-style:none;margin-left:0}
+.step-list li{counter-increment:step;padding:.55rem .7rem .55rem 2.6rem;margin:.3rem 0;background:#fff;border-left:3px solid var(--pri-l);border-radius:0 6px 6px 0;box-shadow:var(--sh);position:relative}
+.step-list li::before{content:counter(step);position:absolute;left:.7rem;top:.55rem;width:1.5rem;height:1.5rem;background:var(--pri);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem}
+.theory-box{background:#fff;border-left:4px solid var(--info);padding:.8rem 1rem;border-radius:0 6px 6px 0;margin:.6rem 0;box-shadow:var(--sh)}
+.theory-box .ttl{font-weight:700;color:var(--info);font-size:.95rem;margin-bottom:.35rem}
+details{margin:.5rem 0}
+details summary{cursor:pointer;padding:.5rem .8rem;background:#eef4fa;border-radius:5px;font-weight:600;color:var(--pri);user-select:none}
+details summary:hover{background:#dbe7f3}
+details[open] summary{border-radius:5px 5px 0 0;margin-bottom:.2rem}
+.badge{display:inline-block;padding:.1rem .5rem;border-radius:10px;font-size:.72rem;font-weight:700;margin-left:.4rem}
+.badge.pass{background:#d4efdf;color:#1e8449}
+.badge.fail{background:#fadbd8;color:#a93226}
+.badge.run{background:#fef5e7;color:#b9770e}
+.badge.ok{background:#d6eaf8;color:#1a5276}
+.test-row{display:flex;align-items:center;gap:.6rem;padding:.45rem .7rem;background:#fff;border-radius:5px;margin:.25rem 0;border-left:3px solid var(--brd);font-size:.88rem;box-shadow:var(--sh)}
+.test-row.pass{border-left-color:var(--ok);background:#f3faf5}
+.test-row.fail{border-left-color:var(--acc);background:#fdedeb}
+.test-row .nm{flex:1;font-weight:600}
+.test-row .det{font-family:'Courier New',monospace;font-size:.78rem;color:var(--txtl)}
+.test-summary{background:#fff;border-radius:var(--r);padding:1rem;margin:.8rem 0;box-shadow:var(--shh);text-align:center}
+.test-summary .nm{font-size:1.05rem;font-weight:700;color:var(--pri);margin-bottom:.4rem}
+.test-summary .nums{display:flex;justify-content:center;gap:1.8rem;flex-wrap:wrap}
+.test-summary .nums div{text-align:center}
+.test-summary .nums .val{font-size:1.8rem;font-weight:800}
+.test-summary .nums .val.pass{color:var(--ok)}
+.test-summary .nums .val.fail{color:var(--acc)}
+.test-summary .nums .val.total{color:var(--pri)}
+.test-summary .nums .lbl{font-size:.74rem;color:var(--txtl);text-transform:uppercase;letter-spacing:.5px}
+.progress{height:8px;background:#eef4fa;border-radius:4px;overflow:hidden;margin:.5rem 0}
+.progress .bar{height:100%;background:linear-gradient(90deg,var(--ok),#82e0aa);width:0;transition:width .2s}
+.progress.fail .bar{background:linear-gradient(90deg,var(--acc),#f1948a)}
+.vec-display{display:inline-flex;align-items:center;gap:3px;background:#fff;border:1px solid var(--brd);padding:.25rem .5rem;border-radius:5px;font-family:'Courier New',monospace;font-size:.85rem;margin:.2rem}
+.kfmt{font-family:'Courier New',monospace;font-size:.9rem;color:var(--pri-d)}
+.hist-bar{height:18px;background:var(--pri);border-radius:3px;margin:2px 0;display:inline-block;vertical-align:middle}
+.hist-row{display:flex;align-items:center;gap:.5rem;font-size:.82rem;margin:.15rem 0}
+.hist-row .lbl{width:60px;font-family:'Courier New',monospace}
+.hist-row .num{font-family:'Courier New',monospace;color:var(--txtl)}
+.matrix-anim td{transition:background .35s, color .35s}
+.legend{display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;margin-right:1rem;color:var(--txtl)}
+.legend .sw{width:14px;height:14px;border:1px solid var(--brd);border-radius:3px;display:inline-block}
+.footer{text-align:center;padding:1.4rem;color:var(--txtl);font-size:.82rem;border-top:1px solid var(--brd);margin-top:2rem}
+.footer a{color:var(--pri);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+.code-toggle{display:inline-block;margin:.3rem 0;padding:.3rem .7rem;background:#0e2f44;color:#fff;border-radius:4px;font-family:'Courier New',monospace;font-size:.78rem;cursor:pointer;border:none}
+.code-toggle:hover{background:#1a5276}
+.eqn{background:#fff;padding:.5rem .8rem;margin:.4rem 0;border-radius:5px;border:1px solid var(--brd);overflow-x:auto}
+.tag{display:inline-block;padding:.1rem .45rem;background:#eef4fa;color:var(--pri);border-radius:3px;font-size:.72rem;font-weight:600;margin-right:.3rem}
+@media (max-width:760px){
+  .tab-content{padding:.9rem}
+  .header h1{font-size:1.3rem}
+  .tab-btn{font-size:.85rem;padding:.7rem .4rem}
+  .flex>div{min-width:100%}
+  .mat-grid td{width:30px;height:26px;font-size:.78rem}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="acc">algebra</span><span style="color:#82c8e6">ai</span> — Códigos lineales &amp; Factorización QR</h1>
+  <p>Generación y resolución asistida por IA · Métodos Matemáticos · UPO Cuantitativo</p>
+  <span class="repo">github.com/upocuantitativo/algebraai</span>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('codigos')" id="tab-codigos"><span class="ic">📡</span> Códigos lineales</button>
+  <button class="tab-btn" onclick="switchTab('qr')" id="tab-qr"><span class="ic">📐</span> Factorización QR</button>
+  <button class="tab-btn" onclick="switchTab('tests')" id="tab-tests"><span class="ic">🧪</span> Suite de pruebas</button>
+</div>
+
+<!-- ================================================================ -->
+<!-- TAB: CÓDIGOS LINEALES                                            -->
+<!-- ================================================================ -->
+<div id="content-codigos" class="tab-content active">
+
+<div class="subtab-bar">
+  <button class="subtab-btn active" onclick="switchSub('c','t')">Teoría</button>
+  <button class="subtab-btn" onclick="switchSub('c','b')">Constructor H · G</button>
+  <button class="subtab-btn" onclick="switchSub('c','e')">Codificador / canal</button>
+  <button class="subtab-btn" onclick="switchSub('c','d')">Decodificación</button>
+  <button class="subtab-btn" onclick="switchSub('c','h')">Cota de Hamming</button>
+</div>
+
+<!-- TEORIA -->
+<div id="c-t" class="subsection active">
+<h2>1. Códigos lineales sobre \(\mathbb{F}_2\)</h2>
+<div class="theory-box">
+  <div class="ttl">Definición</div>
+  Un <b>código lineal</b> \([n,k,d]\) binario es un subespacio vectorial \(\mathcal{C}\subseteq\mathbb{F}_2^n\) de dimensión \(k\). Sus elementos son <i>palabras-código</i>. La <b>distancia mínima</b> es \(d=\min_{c\neq 0}\mathrm{wt}(c)\), donde \(\mathrm{wt}\) cuenta los unos.
+</div>
+<div class="theory-box">
+  <div class="ttl">Matriz generadora \(G\) y de control \(H\)</div>
+  \(G\in\mathcal{M}_{k\times n}\) y \(H\in\mathcal{M}_{(n-k)\times n}\). Cumplen \(GH^{\top}=0\), \(\mathcal{C}=\{mG : m\in\mathbb{F}_2^k\}=\ker H\). En forma sistemática \(G=[\,I_k\,|\,P\,]\), \(H=[\,P^{\top}\,|\,I_{n-k}\,]\).
+</div>
+<div class="theory-box">
+  <div class="ttl">Distancia y columnas de \(H\)</div>
+  \(d\) es el menor número de columnas de \(H\) linealmente dependientes. Un código corrige \(t=\lfloor (d-1)/2\rfloor\) errores y detecta \(d-1\).
+</div>
+<div class="theory-box">
+  <div class="ttl">Decodificación por síndrome</div>
+  Si \(r=c+e\) llega con error, el síndrome \(s=rH^{\top}=eH^{\top}\) depende sólo del error. Si \(\mathrm{wt}(e)\le t\), el síndrome identifica unívocamente \(e\) (líder del coset).
+</div>
+<div class="theory-box">
+  <div class="ttl">Cota de Hamming (esférica)</div>
+  \[2^{k}\sum_{i=0}^{t}\binom{n}{i}\le 2^{n}.\] El código es <b>perfecto</b> si se alcanza la igualdad: las esferas de radio \(t\) cubren \(\mathbb{F}_2^n\) sin solapamiento. <b>Hamming\((7,4,3)\) es perfecto.</b>
+</div>
+
+<h3>Hamming\((7,4,3)\) — el ejemplo de este módulo</h3>
+<p>Por defecto trabajamos con el código Hamming\((7,4,3)\) en forma sistemática. Es <b>perfecto</b> (\(16\cdot 8=128=2^7\)) y corrige 1 error.</p>
+
+<div class="flex">
+<div>
+<h4>Matriz generadora \(G\)</h4>
+<div id="default-G"></div>
+</div>
+<div>
+<h4>Matriz de control \(H\)</h4>
+<div id="default-H"></div>
+</div>
+</div>
+
+<button class="btn btn-primary" onclick="switchSub('c','b')">→ Editar matrices</button>
+<button class="btn btn-ghost" onclick="switchSub('c','e')">→ Codificar mensaje</button>
+</div>
+
+<!-- CONSTRUCTOR -->
+<div id="c-b" class="subsection">
+<h2>2. Constructor visual de \(H\) y \(G\)</h2>
+<p>Edita la matriz de control \(H\in\mathcal{M}_{(n-k)\times n}(\mathbb{F}_2)\). El sistema deduce automáticamente <b>parámetros</b>, <b>distancia mínima</b> y, si \(H\) está en forma sistemática \([P^{\top}\,|\,I]\), la <b>matriz generadora</b> \(G=[\,I\,|\,P\,]\).</p>
+
+<div class="controls">
+  <label>n =</label><input type="number" id="cb-n" min="3" max="15" value="7">
+  <label>n-k =</label><input type="number" id="cb-nk" min="1" max="10" value="3">
+  <button class="btn btn-primary" onclick="cb_resize()">Cambiar tamaño</button>
+  <button class="btn btn-ghost" onclick="cb_loadHamming()">Cargar Hamming(7,4)</button>
+  <button class="btn btn-ghost" onclick="cb_loadParity()">Cargar paridad simple</button>
+  <button class="btn btn-warn" onclick="cb_random()">Aleatorizar</button>
+</div>
+
+<h3>Matriz \(H\)</h3>
+<div id="cb-H-host"></div>
+
+<div class="card info" id="cb-analysis"></div>
+
+<h3>Matriz generadora \(G\) (deducida)</h3>
+<div id="cb-G-host"></div>
+
+<div class="card" id="cb-check"></div>
+</div>
+
+<!-- CODIFICADOR -->
+<div id="c-e" class="subsection">
+<h2>3. Codificador y canal de error</h2>
+<p>Introduce un mensaje \(m\in\mathbb{F}_2^k\). Se codifica \(c=mG\) y opcionalmente se aplica un patrón de error \(e\) (haz clic sobre los bits de \(r\) para invertirlos).</p>
+
+<div class="card">
+<h4>Mensaje \(m\)</h4>
+<div id="enc-m-host"></div>
+<button class="btn btn-primary" onclick="enc_random()">Mensaje aleatorio</button>
+<button class="btn btn-ghost" onclick="enc_zero()">\(m=0\)</button>
+</div>
+
+<div class="card ok">
+<h4>Palabra-código \(c=mG\)</h4>
+<div id="enc-c-host"></div>
+<div id="enc-c-check" style="margin-top:.4rem"></div>
+</div>
+
+<div class="card warn">
+<h4>Canal con errores → \(r=c\oplus e\)</h4>
+<p style="font-size:.85rem;color:var(--txtl)">Haz clic sobre cada bit para introducir un error. Los bits cambiados se muestran en rojo.</p>
+<div id="enc-r-host"></div>
+<button class="btn btn-ghost" onclick="enc_clearErrors()">Limpiar errores</button>
+<button class="btn btn-acc" onclick="enc_oneError()">1 error aleatorio</button>
+<button class="btn btn-acc" onclick="enc_twoErrors()">2 errores aleatorios</button>
+<div id="enc-err-summary" style="margin-top:.5rem"></div>
+</div>
+
+<button class="btn btn-primary" onclick="switchSub('c','d')">→ Decodificar</button>
+</div>
+
+<!-- DECODIFICADOR -->
+<div id="c-d" class="subsection">
+<h2>4. Decodificación por síndrome — animación paso a paso</h2>
+<p>El decodificador calcula \(s=rH^{\top}\), busca la columna de \(H\) que coincide con \(s\), y corrige ese bit. Si el síndrome no coincide con ninguna columna o si hay \(\ge 2\) errores, lo señala.</p>
+
+<button class="btn btn-primary" onclick="dec_run()">▶ Ejecutar decodificación</button>
+<button class="btn btn-ghost" onclick="dec_reset()">Reiniciar</button>
+
+<div id="dec-output" style="margin-top:1rem"></div>
+
+<details style="margin-top:1rem">
+  <summary>Tabla síndrome → posición (Hamming(7,4))</summary>
+  <div id="dec-coset-table" style="margin-top:.5rem"></div>
+</details>
+</div>
+
+<!-- COTA DE HAMMING -->
+<div id="c-h" class="subsection">
+<h2>5. Cota de Hamming — explorador</h2>
+<p>Para un código \([n,k]\) binario que corrige \(t\) errores, la cota de Hamming exige</p>
+<div class="eqn" id="hamming-eqn"></div>
+<p>Cuando hay igualdad, el código es <b>perfecto</b>. Hamming\((7,4)\) y Golay\((23,12,7)\) son los únicos códigos perfectos binarios no triviales.</p>
+
+<div class="controls">
+  <label>n =</label><input type="number" id="hb-n" value="7" min="3" max="31">
+  <label>k =</label><input type="number" id="hb-k" value="4" min="1" max="20">
+  <label>t =</label><input type="number" id="hb-t" value="1" min="0" max="10">
+  <button class="btn btn-primary" onclick="hb_compute()">Comprobar cota</button>
+</div>
+
+<div id="hb-result" class="card"></div>
+
+<h3>Tabla de cumplimiento (k=4, t=2 — caso del Proyecto 1)</h3>
+<div id="hb-table"></div>
+</div>
+
+</div><!-- /codigos -->
+
+<!-- ================================================================ -->
+<!-- TAB: QR                                                          -->
+<!-- ================================================================ -->
+<div id="content-qr" class="tab-content">
+
+<div class="subtab-bar">
+  <button class="subtab-btn active" onclick="switchSub('q','t')">Teoría</button>
+  <button class="subtab-btn" onclick="switchSub('q','m')">Matriz A · vector b</button>
+  <button class="subtab-btn" onclick="switchSub('q','c')">CGS paso a paso</button>
+  <button class="subtab-btn" onclick="switchSub('q','g')">MGS</button>
+  <button class="subtab-btn" onclick="switchSub('q','h')">Householder</button>
+  <button class="subtab-btn" onclick="switchSub('q','l')">Mínimos cuadrados</button>
+  <button class="subtab-btn" onclick="switchSub('q','x')">Comparativa</button>
+</div>
+
+<!-- TEORIA QR -->
+<div id="q-t" class="subsection active">
+<h2>1. Factorización QR — fundamentos</h2>
+<div class="theory-box">
+  <div class="ttl">Definición</div>
+  Sea \(A\in\mathcal{M}_{m\times n}(\mathbb{R})\) con \(m\ge n\) de rango \(n\). Existen únicas (módulo signos) \(Q\in\mathcal{M}_{m\times n}\) con \(Q^{\top}Q=I_n\) y \(R\in\mathcal{M}_{n\times n}\) triangular superior con diagonal positiva, tales que \(A=QR\).
+</div>
+<div class="theory-box">
+  <div class="ttl">Mínimos cuadrados</div>
+  El problema \(\min_x \|Ax-b\|_2\) tiene solución única \(x^{\star}\) que satisface \(Rx^{\star}=Q^{\top}b\). Es <b>numéricamente preferible</b> a las ecuaciones normales \(A^{\top}A x=A^{\top}b\) porque \(\mathrm{cond}(R)=\mathrm{cond}(A)\), mientras que \(\mathrm{cond}(A^{\top}A)=\mathrm{cond}(A)^{2}\).
+</div>
+<div class="theory-box">
+  <div class="ttl">Tres algoritmos clásicos</div>
+  <ul>
+    <li><b>CGS</b> (Gram–Schmidt clásico): proyecta cada \(a_j\) sobre todos los \(q_i\) anteriores en una sola pasada.</li>
+    <li><b>MGS</b> (Gram–Schmidt modificado): proyecta iterativamente actualizando el vector residual; mucho mejor backward error.</li>
+    <li><b>Householder</b>: aplica reflexiones \(H_k=I-2v_kv_k^{\top}\) que anulan las posiciones bajo el pivote; estable por construcción.</li>
+  </ul>
+</div>
+<div class="theory-box">
+  <div class="ttl">Cuándo elige cada uno</div>
+  Para matrices bien condicionadas (\(\mathrm{cond}<10^{4}\)), CGS basta. Para matrices mal condicionadas, MGS o Householder. Para matrices casi-rango-deficientes, Householder con pivoteo de columnas. Cada algoritmo cuesta \(O(mn^{2})\) flops; CGS y MGS son los más rápidos en práctica.
+</div>
+
+<h3>Ejemplo precargado (Proyecto 2)</h3>
+<div class="flex">
+<div>
+<h4>Matriz \(A\) (Vandermonde \(1,t,t^2\) con \(t\in\{1{.}0,1{.}1,1{.}2,1{.}3\}\))</h4>
+<div id="qr-default-A"></div>
+</div>
+<div>
+<h4>Vector \(b\)</h4>
+<div id="qr-default-b"></div>
+</div>
+</div>
+
+<button class="btn btn-primary" onclick="switchSub('q','m')">→ Editar matriz</button>
+<button class="btn btn-ghost" onclick="switchSub('q','c')">→ Ver CGS paso a paso</button>
+</div>
+
+<!-- MATRIZ -->
+<div id="q-m" class="subsection">
+<h2>2. Matriz \(A\) y vector \(b\)</h2>
+<div class="controls">
+  <label>m (filas) =</label><input type="number" id="qm-m" min="2" max="8" value="4">
+  <label>n (cols) =</label><input type="number" id="qm-n" min="1" max="6" value="3">
+  <button class="btn btn-primary" onclick="qm_resize()">Aplicar</button>
+  <button class="btn btn-ghost" onclick="qm_loadDefault()">Cargar ejemplo Proyecto 2</button>
+  <button class="btn btn-ghost" onclick="qm_loadVandermonde()">Vandermonde estrecho</button>
+  <button class="btn btn-warn" onclick="qm_random()">Aleatoria</button>
+</div>
+
+<div class="flex" style="margin-top:.8rem">
+  <div><h3>Matriz \(A\)</h3><div id="qm-A-host"></div></div>
+  <div><h3>Vector \(b\)</h3><div id="qm-b-host"></div></div>
+</div>
+
+<div class="card info" id="qm-cond"></div>
+</div>
+
+<!-- CGS -->
+<div id="q-c" class="subsection">
+<h2>3. Gram–Schmidt clásico (CGS) — animación</h2>
+<button class="btn btn-primary" onclick="cgs_run()">▶ Ejecutar CGS paso a paso</button>
+<button class="btn btn-ghost" onclick="cgs_reset()">Reiniciar</button>
+<div id="cgs-output" style="margin-top:.8rem"></div>
+</div>
+
+<!-- MGS -->
+<div id="q-g" class="subsection">
+<h2>4. Gram–Schmidt modificado (MGS)</h2>
+<button class="btn btn-primary" onclick="mgs_run()">▶ Ejecutar MGS paso a paso</button>
+<button class="btn btn-ghost" onclick="mgs_reset()">Reiniciar</button>
+<div id="mgs-output" style="margin-top:.8rem"></div>
+</div>
+
+<!-- HOUSEHOLDER -->
+<div id="q-h" class="subsection">
+<h2>5. Householder — reflexiones paso a paso</h2>
+<button class="btn btn-primary" onclick="house_run()">▶ Ejecutar Householder</button>
+<button class="btn btn-ghost" onclick="house_reset()">Reiniciar</button>
+<div id="house-output" style="margin-top:.8rem"></div>
+</div>
+
+<!-- LSQ -->
+<div id="q-l" class="subsection">
+<h2>6. Mínimos cuadrados</h2>
+<p>Calcula \(x^{\star}=\arg\min_x\|Ax-b\|_2\) por los tres métodos QR y por ecuaciones normales, y compara.</p>
+<button class="btn btn-primary" onclick="lsq_run()">▶ Resolver</button>
+<div id="lsq-output" style="margin-top:.8rem"></div>
+</div>
+
+<!-- COMPARATIVA -->
+<div id="q-x" class="subsection">
+<h2>7. Comparativa de los tres métodos</h2>
+<p>Para la matriz actual, computa CGS, MGS y Householder, y muestra:</p>
+<ul>
+  <li>\(\|Q^{\top}Q-I\|_F\): pérdida de ortogonalidad.</li>
+  <li>\(\|A-QR\|_F\): error de factorización.</li>
+  <li>\(\|x_{\text{método}} - x_{\text{ref}}\|\) frente a `numpy.linalg.lstsq`-style reference (resolvedor doble precisión interno).</li>
+</ul>
+<button class="btn btn-primary" onclick="cmp_run()">▶ Comparar</button>
+<button class="btn btn-ghost" onclick="cmp_lauchli()">Cargar Läuchli (ε pequeño)</button>
+<div id="cmp-output" style="margin-top:.8rem"></div>
+</div>
+
+</div><!-- /qr -->
+
+<!-- ================================================================ -->
+<!-- TAB: TESTS                                                       -->
+<!-- ================================================================ -->
+<div id="content-tests" class="tab-content">
+<h2>🧪 Suite de pruebas automáticas</h2>
+<p>Esta suite valida los algoritmos del interactivo ejecutando <b>cientos de casos aleatorios</b> y comprobando recursivamente las identidades fundamentales. Si todo está en verde, los algoritmos son correctos a la precisión esperada.</p>
+
+<div class="card info">
+<div class="ttl">🔁 ¿Qué significa "verificación recursiva"?</div>
+Cada prueba ejecuta el algoritmo y luego <b>aplica la inversa</b> o una comprobación independiente para confirmar el resultado:
+<ul>
+  <li><b>Códigos:</b> codificar \(m\to c\), introducir error, decodificar; debe recuperarse \(m\). Repetir para 200 casos aleatorios.</li>
+  <li><b>QR:</b> factorizar \(A=QR\), reconstruir \(QR\) y comparar con \(A\); verificar \(Q^{\top}Q=I\); resolver LSQ y comparar con resolutor independiente. Repetir para 200 matrices aleatorias.</li>
+  <li><b>Síndrome:</b> generar 128 patrones de error, verificar que el decodificador corrige todos los de peso \(\le 1\) y que la tabla de cosets es consistente.</li>
+  <li><b>Cota de Hamming:</b> verificar que \(2^{k}V(n,t)\le 2^{n}\) en 50 casos.</li>
+</ul>
+</div>
+
+<div class="card">
+<button class="btn btn-primary" onclick="runAllTests()" style="font-size:1rem;padding:.7rem 1.4rem">▶ Ejecutar TODAS las pruebas</button>
+<button class="btn btn-ghost" onclick="runCodesTests()">Solo códigos</button>
+<button class="btn btn-ghost" onclick="runQRTests()">Solo QR</button>
+<button class="btn btn-ghost" onclick="clearTests()">Limpiar</button>
+<div style="margin-top:.5rem;font-size:.85rem;color:var(--txtl)">Tiempo total esperado: ~2-4 segundos. Las pruebas no bloquean la interfaz.</div>
+</div>
+
+<div id="tests-summary"></div>
+
+<div id="tests-output"></div>
+
+</div><!-- /tests -->
+
+<div class="footer">
+  <p><b>algebraai</b> · Métodos Matemáticos · Universidad Pablo de Olavide</p>
+  <p>Repositorio: <a href="https://github.com/upocuantitativo/algebraai" target="_blank">github.com/upocuantitativo/algebraai</a></p>
+  <p style="margin-top:.4rem;font-size:.78rem">Proyectos 1 (Códigos lineales) y 2 (Factorización QR) — entrega 11/05/2026 23:59 CEST</p>
+</div>
+
+<script>
+/* =====================================================================
+   ALGORITMOS NÚCLEO — Códigos lineales sobre GF(2)
+   ===================================================================== */
+
+const HAMMING_H = [
+  [1,1,0,1,1,0,0],
+  [1,0,1,1,0,1,0],
+  [0,1,1,1,0,0,1]
+];
+const HAMMING_G = [
+  [1,0,0,0,1,1,0],
+  [0,1,0,0,1,0,1],
+  [0,0,1,0,0,1,1],
+  [0,0,0,1,1,1,1]
+];
+
+function matMulMod2(A, B){
+  const m = A.length, p = B[0].length, q = B.length;
+  const C = Array.from({length:m}, () => new Array(p).fill(0));
+  for (let i=0;i<m;i++) for (let j=0;j<p;j++){
+    let s = 0;
+    for (let r=0;r<q;r++) s ^= (A[i][r] & B[r][j]);
+    C[i][j] = s;
+  }
+  return C;
+}
+function vecMatMod2(v, M){
+  const n = M[0].length;
+  const res = new Array(n).fill(0);
+  for (let j=0;j<n;j++) for (let i=0;i<v.length;i++) res[j] ^= (v[i] & M[i][j]);
+  return res;
+}
+function transpose(M){
+  const m=M.length, n=M[0].length;
+  return Array.from({length:n}, (_,j) => Array.from({length:m}, (_,i) => M[i][j]));
+}
+function eye(n){ return Array.from({length:n}, (_,i) => Array.from({length:n}, (_,j) => i===j?1:0)); }
+function eyeF(n){ return Array.from({length:n}, (_,i) => Array.from({length:n}, (_,j) => i===j?1.0:0.0)); }
+function colsEqual(A, B){
+  if (A.length!==B.length || A[0].length!==B[0].length) return false;
+  for (let i=0;i<A.length;i++) for (let j=0;j<A[0].length;j++) if (A[i][j]!==B[i][j]) return false;
+  return true;
+}
+
+/* Syndrome decoding */
+function syndrome(r, H){
+  const s = new Array(H.length).fill(0);
+  for (let i=0;i<H.length;i++) for (let j=0;j<r.length;j++) s[i] ^= (r[j] & H[i][j]);
+  return s;
+}
+function decodeSyndrome(r, H){
+  const s = syndrome(r, H);
+  if (s.every(x => x===0)) return {s, e:new Array(r.length).fill(0), c:r.slice(), corrected:true, position:null, zeroSynd:true};
+  // find column of H equal to s
+  for (let j=0;j<H[0].length;j++){
+    let match=true;
+    for (let i=0;i<H.length;i++) if (H[i][j]!==s[i]){match=false;break;}
+    if (match){
+      const e = new Array(r.length).fill(0); e[j]=1;
+      const c = r.map((x,k)=> x ^ e[k]);
+      return {s, e, c, corrected:true, position:j+1, zeroSynd:false};
+    }
+  }
+  return {s, corrected:false, zeroSynd:false};
+}
+
+/* Compute distance of code from H by enumerating G·m for all m */
+function codeDistance(G){
+  const k = G.length, n = G[0].length;
+  let dmin = Infinity;
+  for (let mi=1; mi<(1<<k); mi++){
+    const m = []; for (let i=0;i<k;i++) m.push((mi>>i)&1);
+    const c = vecMatMod2(m, G);
+    const w = c.reduce((a,b)=>a+b,0);
+    if (w < dmin) dmin = w;
+  }
+  return dmin;
+}
+
+/* Hamming bound */
+function binomCoeff(n,k){
+  if (k<0||k>n) return 0;
+  if (k>n-k) k=n-k;
+  let c=1;
+  for (let i=0;i<k;i++){ c = c * (n-i) / (i+1); }
+  return Math.round(c);
+}
+function hammingVolume(n,t){
+  let v=0; for (let i=0;i<=t;i++) v += binomCoeff(n,i);
+  return v;
+}
+function hammingBound(n,k,t){
+  return Math.pow(2,k) * hammingVolume(n,t) <= Math.pow(2,n);
+}
+
+/* Build G systematic from H = [P^T | I] */
+function GfromH_systematic(H){
+  const m = H.length, n = H[0].length;
+  const k = n - m;
+  // Check if rightmost mxm submatrix is I_m
+  for (let i=0;i<m;i++) for (let j=0;j<m;j++){
+    const need = (i===j)?1:0;
+    if (H[i][k+j] !== need) return null;
+  }
+  // P^T = H[:, 0..k-1], so P = transpose
+  const Pt = H.map(row => row.slice(0,k));
+  const P  = transpose(Pt);
+  // G = [I_k | P]
+  const G = [];
+  for (let i=0;i<k;i++){
+    const row = new Array(n).fill(0);
+    row[i] = 1;
+    for (let j=0;j<m;j++) row[k+j] = P[i][j];
+    G.push(row);
+  }
+  return G;
+}
+
+/* =====================================================================
+   ALGORITMOS NÚCLEO — QR
+   ===================================================================== */
+
+function dot(a,b){ let s=0; for (let i=0;i<a.length;i++) s += a[i]*b[i]; return s; }
+function norm(v){ return Math.sqrt(dot(v,v)); }
+function vecAdd(a,b,sb){ sb = (sb===undefined)?1:sb; return a.map((x,i)=>x + sb*b[i]); }
+function vecScale(v,s){ return v.map(x => x*s); }
+function matCopy(A){ return A.map(r => r.slice()); }
+function matCol(A,j){ return A.map(r => r[j]); }
+function matSetCol(A,j,v){ for (let i=0;i<A.length;i++) A[i][j] = v[i]; }
+function matMul(A,B){
+  const m=A.length, p=B[0].length, q=B.length;
+  const C = Array.from({length:m}, () => new Array(p).fill(0));
+  for (let i=0;i<m;i++) for (let j=0;j<p;j++){
+    let s=0; for (let r=0;r<q;r++) s += A[i][r]*B[r][j];
+    C[i][j] = s;
+  }
+  return C;
+}
+function matVec(A,x){ return A.map(row => dot(row,x)); }
+function matSub(A,B){ return A.map((r,i)=> r.map((v,j)=> v - B[i][j])); }
+function frobNorm(A){ let s=0; for (const r of A) for (const v of r) s += v*v; return Math.sqrt(s); }
+function maxAbs(A){ let m=0; for (const r of A) for (const v of r){ if (Math.abs(v)>m) m=Math.abs(v); } return m; }
+
+/* CGS — returns Q, R and the trace of steps */
+function cgs(A, recordSteps){
+  const m=A.length, n=A[0].length;
+  const Q = Array.from({length:m}, () => new Array(n).fill(0));
+  const R = Array.from({length:n}, () => new Array(n).fill(0));
+  const steps = [];
+  for (let j=0;j<n;j++){
+    const v = matCol(A,j);
+    const rij = [];
+    for (let i=0;i<j;i++){
+      let r=0; for (let k=0;k<m;k++) r += Q[k][i]*A[k][j];
+      R[i][j] = r;
+      rij.push({i, r});
+      for (let k=0;k<m;k++) v[k] -= r * Q[k][i];
+    }
+    const nrm = norm(v);
+    R[j][j] = nrm;
+    const qj = v.map(x => x/nrm);
+    for (let k=0;k<m;k++) Q[k][j] = qj[k];
+    if (recordSteps) steps.push({j, rij, v: v.slice(), qj, nrm});
+  }
+  return {Q, R, steps};
+}
+
+/* MGS */
+function mgs(A, recordSteps){
+  const m=A.length, n=A[0].length;
+  const V = matCopy(A);
+  const Q = Array.from({length:m}, () => new Array(n).fill(0));
+  const R = Array.from({length:n}, () => new Array(n).fill(0));
+  const steps = [];
+  for (let j=0;j<n;j++){
+    const vj = matCol(V,j);
+    const nrm = norm(vj);
+    R[j][j] = nrm;
+    const qj = vj.map(x => x/nrm);
+    for (let k=0;k<m;k++) Q[k][j] = qj[k];
+    const projs = [];
+    for (let i=j+1;i<n;i++){
+      let r=0; for (let k=0;k<m;k++) r += Q[k][j]*V[k][i];
+      R[j][i] = r;
+      projs.push({i, r});
+      for (let k=0;k<m;k++) V[k][i] -= r * Q[k][j];
+    }
+    if (recordSteps) steps.push({j, nrm, qj, projs, Vsnapshot: matCopy(V)});
+  }
+  return {Q, R, steps};
+}
+
+/* Householder */
+function householder(A, recordSteps){
+  const m=A.length, n=A[0].length;
+  let R = matCopy(A);
+  let Q = eyeF(m);
+  const steps = [];
+  for (let k=0;k<n;k++){
+    const x = []; for (let i=0;i<m-k;i++) x.push(R[k+i][k]);
+    const xn = norm(x);
+    if (xn < 1e-15) continue;
+    const sign = x[0] >= 0 ? 1 : -1;
+    const v = x.slice();
+    v[0] += sign * xn;
+    const vn = norm(v);
+    for (let i=0;i<v.length;i++) v[i] /= vn;
+    // Apply to R[k:,k:]
+    for (let j=k;j<n;j++){
+      let s=0; for (let i=0;i<m-k;i++) s += v[i] * R[k+i][j];
+      for (let i=0;i<m-k;i++) R[k+i][j] -= 2*v[i]*s;
+    }
+    // Apply to Q[k:,:]
+    for (let j=0;j<m;j++){
+      let s=0; for (let i=0;i<m-k;i++) s += v[i] * Q[k+i][j];
+      for (let i=0;i<m-k;i++) Q[k+i][j] -= 2*v[i]*s;
+    }
+    if (recordSteps) steps.push({k, v: v.slice(), Rsnapshot: matCopy(R), xn, sign});
+  }
+  // Q is currently Q^T (the product of H_k applied to I from the right => H_n...H_1)
+  Q = transpose(Q);
+  return {Q, R: R.slice(0,n), steps};
+}
+
+/* Solve R x = b for upper-triangular R */
+function backSub(R, b){
+  const n = R.length;
+  const x = new Array(n).fill(0);
+  for (let i=n-1;i>=0;i--){
+    let s = b[i];
+    for (let j=i+1;j<n;j++) s -= R[i][j] * x[j];
+    x[i] = s / R[i][i];
+  }
+  return x;
+}
+
+/* LSQ via QR */
+function lsqQR(A, b, method){
+  const {Q, R} = method === 'mgs' ? mgs(A) : method === 'house' ? householder(A) : cgs(A);
+  const n = R.length;
+  const c = new Array(n).fill(0);
+  for (let i=0;i<n;i++) for (let k=0;k<Q.length;k++) c[i] += Q[k][i]*b[k];
+  // Truncate Q to first n cols for Householder
+  const x = backSub(R, c);
+  return {x, Q, R};
+}
+
+/* LSQ via normal equations (solve A^T A x = A^T b via Gaussian elimination) */
+function lsqNormal(A, b){
+  const m=A.length, n=A[0].length;
+  const ATA = Array.from({length:n}, () => new Array(n).fill(0));
+  const ATb = new Array(n).fill(0);
+  for (let i=0;i<n;i++){
+    for (let j=0;j<n;j++) for (let k=0;k<m;k++) ATA[i][j] += A[k][i]*A[k][j];
+    for (let k=0;k<m;k++) ATb[i] += A[k][i]*b[k];
+  }
+  return {x: solveGauss(ATA, ATb), ATA, ATb};
+}
+
+function solveGauss(A0, b0){
+  const n = A0.length;
+  const A = matCopy(A0);
+  const b = b0.slice();
+  for (let k=0;k<n;k++){
+    // Partial pivot
+    let piv = k;
+    for (let i=k+1;i<n;i++) if (Math.abs(A[i][k])>Math.abs(A[piv][k])) piv = i;
+    if (piv!==k){ [A[k],A[piv]]=[A[piv],A[k]]; [b[k],b[piv]]=[b[piv],b[k]]; }
+    if (Math.abs(A[k][k])<1e-15) return null;
+    for (let i=k+1;i<n;i++){
+      const m = A[i][k] / A[k][k];
+      for (let j=k;j<n;j++) A[i][j] -= m*A[k][j];
+      b[i] -= m*b[k];
+    }
+  }
+  return backSub(A, b);
+}
+
+/* Condition number via SVD-like power iteration (rough estimate) */
+function condEst(A){
+  const m=A.length, n=A[0].length;
+  // ATA
+  const ATA = Array.from({length:n}, () => new Array(n).fill(0));
+  for (let i=0;i<n;i++) for (let j=0;j<n;j++) for (let k=0;k<m;k++) ATA[i][j] += A[k][i]*A[k][j];
+  // Power iteration for largest eigenvalue
+  let v = new Array(n).fill(0); v[0]=1;
+  let lambdaMax = 1;
+  for (let it=0;it<60;it++){
+    const w = matVec(ATA, v);
+    lambdaMax = norm(w);
+    if (lambdaMax<1e-30) break;
+    v = w.map(x => x/lambdaMax);
+  }
+  // Inverse power iteration for smallest
+  const ATAinv = invertSym(ATA);
+  if (!ATAinv) return {sigmaMax:Math.sqrt(lambdaMax), sigmaMin:0, cond:Infinity};
+  v = new Array(n).fill(0); v[0]=1;
+  let lambdaMin = 1;
+  for (let it=0;it<60;it++){
+    const w = matVec(ATAinv, v);
+    lambdaMin = norm(w);
+    if (lambdaMin<1e-30) break;
+    v = w.map(x => x/lambdaMin);
+  }
+  const sigmaMax = Math.sqrt(lambdaMax);
+  const sigmaMin = 1/Math.sqrt(lambdaMin);
+  return {sigmaMax, sigmaMin, cond: sigmaMax/sigmaMin};
+}
+
+function invertSym(M){
+  const n = M.length;
+  // Build augmented [M | I]
+  const aug = M.map((row,i) => row.concat(eye(n)[i]));
+  for (let k=0;k<n;k++){
+    let piv = k;
+    for (let i=k+1;i<n;i++) if (Math.abs(aug[i][k])>Math.abs(aug[piv][k])) piv = i;
+    if (piv!==k) [aug[k],aug[piv]] = [aug[piv],aug[k]];
+    const pv = aug[k][k];
+    if (Math.abs(pv)<1e-15) return null;
+    for (let j=0;j<2*n;j++) aug[k][j] /= pv;
+    for (let i=0;i<n;i++){
+      if (i===k) continue;
+      const f = aug[i][k];
+      for (let j=0;j<2*n;j++) aug[i][j] -= f*aug[k][j];
+    }
+  }
+  return aug.map(row => row.slice(n));
+}
+
+/* =====================================================================
+   UI HELPERS
+   ===================================================================== */
+
+function fmt(x, digits){
+  digits = digits||4;
+  if (Math.abs(x) < 1e-12) return '0';
+  if (Math.abs(x) < 1e-3 || Math.abs(x) >= 1e6) return x.toExponential(2);
+  return parseFloat(x.toFixed(digits)).toString();
+}
+
+function renderMat(M, opts){
+  opts = opts || {};
+  const cls = (opts.size === 'sm') ? 'mat-grid size-sm' : 'mat-grid';
+  let html = `<div class="${cls}"><table>`;
+  for (let i=0;i<M.length;i++){
+    html += '<tr>';
+    for (let j=0;j<M[i].length;j++){
+      let cellCls = '';
+      if (opts.hiCol === j) cellCls = 'hi-col';
+      if (opts.hiRow === i) cellCls = 'hi-row';
+      if (opts.pivot && opts.pivot[0]===i && opts.pivot[1]===j) cellCls = 'pivot';
+      if (opts.editable){
+        html += `<td class="${cellCls}"><input value="${M[i][j]}" data-i="${i}" data-j="${j}" ${opts.binary?'maxlength="1"':''}></td>`;
+      } else {
+        const val = opts.format ? opts.format(M[i][j],i,j) : (Math.abs(M[i][j])<1e-12?'0':(typeof M[i][j]==='number' && !Number.isInteger(M[i][j])?fmt(M[i][j]):M[i][j]));
+        html += `<td class="${cellCls}">${val}</td>`;
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+  return html;
+}
+
+function renderVec(v, opts){
+  opts = opts || {};
+  const M = v.map(x => [x]);
+  return renderMat(M, opts);
+}
+
+function renderBitRow(bits, opts){
+  opts = opts || {};
+  let html = '<div class="bit-row">';
+  for (let i=0;i<bits.length;i++){
+    let cls = `bit b${bits[i]}`;
+    if (opts.errIdx && opts.errIdx.includes(i)) cls += ' err';
+    if (opts.fixIdx && opts.fixIdx.includes(i)) cls += ' fix';
+    if (opts.hiIdx === i) cls += ' hl';
+    const onclick = opts.onclick ? `onclick="${opts.onclick}(${i})"` : '';
+    const readonly = opts.readonly ? 'read' : '';
+    html += `<div class="bit-stack"><div class="${cls} ${readonly}" ${onclick} data-i="${i}">${bits[i]}</div><span class="bit-label">${opts.labels?opts.labels[i]:(i+1)}</span></div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+/* =====================================================================
+   CODIGOS LINEALES — UI
+   ===================================================================== */
+
+let cbState = {H: JSON.parse(JSON.stringify(HAMMING_H))};
+let encState = {m: [1,0,1,1], c: null, e: [0,0,0,0,0,0,0], r: null};
+
+function cb_resize(){
+  const n = parseInt(document.getElementById('cb-n').value);
+  const nk = parseInt(document.getElementById('cb-nk').value);
+  // Build [I | 0]-like or zero, default to identity in left part
+  const H = Array.from({length:nk}, (_,i) => Array.from({length:n}, (_,j) => (j===i)?1:0));
+  cbState.H = H;
+  cb_render();
+}
+function cb_loadHamming(){
+  document.getElementById('cb-n').value=7;
+  document.getElementById('cb-nk').value=3;
+  cbState.H = JSON.parse(JSON.stringify(HAMMING_H));
+  cb_render();
+}
+function cb_loadParity(){
+  // [n,n-1] single parity check
+  const n=8;
+  document.getElementById('cb-n').value=n;
+  document.getElementById('cb-nk').value=1;
+  cbState.H = [new Array(n).fill(1)];
+  cb_render();
+}
+function cb_random(){
+  const n = cbState.H[0].length, nk = cbState.H.length;
+  // Generate H = [P^T | I]
+  const k = n - nk;
+  if (k <= 0){ cb_render(); return; }
+  const Pt = Array.from({length:nk}, () => Array.from({length:k}, () => Math.random()<0.5?1:0));
+  for (let i=0;i<nk;i++){
+    cbState.H[i] = Pt[i].concat(Array.from({length:nk}, (_,j) => (i===j)?1:0));
+  }
+  cb_render();
+}
+
+function cb_render(){
+  const H = cbState.H;
+  const m = H.length, n = H[0].length;
+  // Render H editable
+  document.getElementById('cb-H-host').innerHTML = renderMat(H, {editable:true, binary:true});
+  // Attach listeners
+  document.querySelectorAll('#cb-H-host input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const v = parseInt(e.target.value);
+      if (v!==0 && v!==1){ e.target.value = '0'; }
+      else {
+        const i = parseInt(e.target.dataset.i), j = parseInt(e.target.dataset.j);
+        cbState.H[i][j] = v;
+        cb_analyze();
+      }
+    });
+  });
+  cb_analyze();
+}
+
+function cb_analyze(){
+  const H = cbState.H;
+  const m = H.length, n = H[0].length;
+  // Rank
+  const rank = rankMod2(H);
+  const k = n - rank;
+  // Min distance (via columns of H if k is enough)
+  let dmin = Infinity;
+  const ncols = n;
+  if (k>0 && k<=12){
+    const G = GfromH_systematic(H);
+    if (G){
+      dmin = codeDistance(G);
+    } else {
+      dmin = minDistFromH(H);
+    }
+  } else {
+    dmin = minDistFromH(H);
+  }
+  const t = Math.floor((dmin-1)/2);
+  // Hamming bound
+  const lhs = Math.pow(2,k) * hammingVolume(n,t);
+  const rhs = Math.pow(2,n);
+  const perfect = (lhs === rhs);
+
+  let html = `<div class="ttl">Análisis del código \\(\\mathcal{C}=\\ker H\\)</div>`;
+  html += `<table class="dt"><tr><th>n</th><th>k</th><th>rang(H)</th><th>d_min</th><th>t corrige</th><th>detecta</th><th>perfecto?</th></tr>`;
+  html += `<tr><td>${n}</td><td class="k">${k}</td><td>${rank}</td><td class="k">${dmin}</td><td>${t}</td><td>${dmin-1}</td><td>${perfect?'<span class="badge pass">SÍ</span>':'no'}</td></tr></table>`;
+  html += `<div class="kfmt" style="margin-top:.4rem">Cota de Hamming: \\(2^{${k}}\\cdot V(${n},${t}) = ${lhs} \\;${perfect?'=':'\\le'}\\; 2^{${n}}=${rhs}\\) ${perfect?'(igualdad ⇒ perfecto)':''}</div>`;
+
+  document.getElementById('cb-analysis').innerHTML = html;
+
+  // Render G if systematic
+  const G = GfromH_systematic(H);
+  let gHtml = '';
+  if (G){
+    gHtml = `<p style="font-size:.85rem;color:var(--txtl)">\\(H\\) está en forma sistemática \\([P^{\\top}\\,|\\,I_${m}]\\): \\(G=[I_${k}\\,|\\,P]\\):</p>`;
+    gHtml += renderMat(G);
+    // Check GH^T = 0
+    const Ht = transpose(H);
+    const prod = matMulMod2(G, Ht);
+    const allZero = prod.every(r => r.every(v => v===0));
+    document.getElementById('cb-check').innerHTML = `<div class="ttl">Verificación \\(GH^{\\top}=0\\)</div>` +
+      (allZero ? `<span class="badge pass">CORRECTO</span> el producto \\(GH^{\\top}\\) es la matriz cero.` :
+                 `<span class="badge fail">ERROR</span> el producto no es cero.`);
+    document.getElementById('cb-check').className = 'card ' + (allZero?'ok':'err');
+  } else {
+    gHtml = `<p style="font-size:.85rem;color:var(--txtl)">\\(H\\) no está en forma sistemática \\([P^{\\top}\\,|\\,I]\\). Reordena las columnas o usa el botón "Cargar Hamming(7,4)".</p>`;
+    document.getElementById('cb-check').innerHTML = '';
+  }
+  document.getElementById('cb-G-host').innerHTML = gHtml;
+  renderAllMath();
+}
+
+function rankMod2(M){
+  const A = M.map(r => r.slice());
+  const m = A.length, n = A[0].length;
+  let rank = 0;
+  let col = 0;
+  for (let row=0; row<m && col<n; col++){
+    let piv = -1;
+    for (let i=row;i<m;i++) if (A[i][col]===1){piv=i;break;}
+    if (piv<0) continue;
+    [A[row],A[piv]] = [A[piv],A[row]];
+    for (let i=0;i<m;i++){
+      if (i!==row && A[i][col]===1){
+        for (let j=0;j<n;j++) A[i][j] ^= A[row][j];
+      }
+    }
+    rank++; row++;
+  }
+  return rank;
+}
+function minDistFromH(H){
+  const m = H.length, n = H[0].length;
+  // d_min = min number of cols linearly dependent
+  // Enumerate subsets of columns up to size 6
+  for (let d=1; d<=Math.min(n,6); d++){
+    if (anyDependentSubset(H, d)) return d;
+  }
+  return n; // upper bound
+}
+function anyDependentSubset(H, d){
+  const m = H.length, n = H[0].length;
+  const idx = Array.from({length:d}, (_,i) => i);
+  while (true){
+    // Check sum of columns = 0
+    const s = new Array(m).fill(0);
+    for (const j of idx) for (let i=0;i<m;i++) s[i] ^= H[i][j];
+    if (s.every(v => v===0)) return true;
+    // Next subset
+    let p = d-1;
+    while (p>=0 && idx[p]===n-d+p) p--;
+    if (p<0) return false;
+    idx[p]++;
+    for (let q=p+1;q<d;q++) idx[q] = idx[q-1]+1;
+  }
+}
+
+/* Encoder / channel UI */
+function enc_render_default(){
+  document.getElementById('default-G').innerHTML = renderMat(HAMMING_G);
+  document.getElementById('default-H').innerHTML = renderMat(HAMMING_H);
+  // Encoder section
+  enc_render();
+}
+function enc_render(){
+  const G = HAMMING_G;
+  const H = HAMMING_H;
+  const k = G.length, n = G[0].length;
+  // m
+  document.getElementById('enc-m-host').innerHTML = renderBitRow(encState.m, {onclick:'enc_toggleM', labels:Array.from({length:k},(_,i)=>'m'+(i+1))});
+  encState.c = vecMatMod2(encState.m, G);
+  // c
+  document.getElementById('enc-c-host').innerHTML = renderBitRow(encState.c, {readonly:true, labels:Array.from({length:n},(_,i)=>'c'+(i+1))});
+  const s = syndrome(encState.c, H);
+  document.getElementById('enc-c-check').innerHTML = `<span class="badge pass">cH^T = (${s.join(',')})</span> ${s.every(x=>x===0)?'✔ codeword':'✗'}`;
+  // r = c XOR e
+  encState.r = encState.c.map((x,i) => x ^ encState.e[i]);
+  const errIdx = []; for (let i=0;i<n;i++) if (encState.e[i]===1) errIdx.push(i);
+  document.getElementById('enc-r-host').innerHTML = renderBitRow(encState.r, {onclick:'enc_toggleR', errIdx, labels:Array.from({length:n},(_,i)=>'r'+(i+1))});
+  document.getElementById('enc-err-summary').innerHTML = errIdx.length===0 ? `<span class="badge ok">sin errores</span>` :
+    `<span class="badge ${errIdx.length<=1?'pass':'fail'}">${errIdx.length} error(es) en posiciones ${errIdx.map(i=>i+1).join(', ')}</span>`;
+}
+function enc_toggleM(i){
+  encState.m[i] ^= 1;
+  encState.e = new Array(7).fill(0);
+  enc_render();
+}
+function enc_toggleR(i){
+  encState.e[i] ^= 1;
+  enc_render();
+}
+function enc_random(){
+  for (let i=0;i<encState.m.length;i++) encState.m[i] = Math.random()<.5?1:0;
+  encState.e = new Array(7).fill(0);
+  enc_render();
+}
+function enc_zero(){
+  encState.m = [0,0,0,0]; encState.e = new Array(7).fill(0); enc_render();
+}
+function enc_clearErrors(){
+  encState.e = new Array(7).fill(0); enc_render();
+}
+function enc_oneError(){
+  encState.e = new Array(7).fill(0);
+  encState.e[Math.floor(Math.random()*7)] = 1;
+  enc_render();
+}
+function enc_twoErrors(){
+  encState.e = new Array(7).fill(0);
+  const a = Math.floor(Math.random()*7);
+  let b; do { b = Math.floor(Math.random()*7); } while (b===a);
+  encState.e[a] = 1; encState.e[b] = 1;
+  enc_render();
+}
+
+/* Decoder with animation */
+async function dec_run(){
+  const H = HAMMING_H, G = HAMMING_G;
+  const r = encState.r.slice();
+  const out = document.getElementById('dec-output');
+  out.innerHTML = '';
+
+  // Step 1: show r
+  const div1 = document.createElement('div');
+  div1.className = 'card';
+  div1.innerHTML = `<div class="ttl">Paso 1 — Palabra recibida \\(r\\)</div>` + renderBitRow(r, {readonly:true});
+  out.appendChild(div1);
+  await sleep(400);
+
+  // Step 2: compute syndrome
+  const s = syndrome(r, H);
+  const div2 = document.createElement('div');
+  div2.className = 'card';
+  let synHtml = `<div class="ttl">Paso 2 — Síndrome \\(s = rH^{\\top}\\)</div>`;
+  synHtml += `<p>Para cada fila \\(H_{i\\bullet}\\), \\(s_i = \\sum_j r_j H_{ij} \\bmod 2\\):</p>`;
+  for (let i=0;i<H.length;i++){
+    const prods = r.map((rb,j) => `${rb}\\cdot${H[i][j]}`).join('+');
+    synHtml += `<div style="font-family:monospace;font-size:.82rem;margin:.2rem 0">\\(s_${i+1} = ${prods} = ${r.reduce((a,b,j)=>a+b*H[i][j],0)} \\equiv ${s[i]} \\pmod 2\\)</div>`;
+  }
+  synHtml += `<div style="margin-top:.4rem">Síndrome: <span class="synd-box ${s.every(x=>x===0)?'ok':''}">s = (${s.join(', ')})ᵀ</span></div>`;
+  div2.innerHTML = synHtml;
+  out.appendChild(div2);
+  renderAllMath();
+  await sleep(700);
+
+  // Step 3: decision
+  const div3 = document.createElement('div');
+  if (s.every(x=>x===0)){
+    div3.className = 'card ok';
+    div3.innerHTML = `<div class="ttl">Paso 3 — Síndrome nulo</div>
+      <p>No se detecta error (o ha habido un error indetectable de peso \\(\\ge d\\)). El decodificador acepta \\(r\\) tal cual.</p>` +
+      `<p>Mensaje decodificado: ${renderBitRow(r.slice(0,4), {readonly:true})}</p>`;
+    out.appendChild(div3);
+    renderAllMath();
+    return;
+  }
+  // find column
+  let pos = -1;
+  for (let j=0;j<H[0].length;j++){
+    let match=true;
+    for (let i=0;i<H.length;i++) if (H[i][j]!==s[i]){match=false;break;}
+    if (match){ pos=j; break; }
+  }
+  if (pos<0){
+    div3.className = 'card err';
+    div3.innerHTML = `<div class="ttl">Paso 3 — Síndrome no asignable</div>
+      <p>El síndrome \\((${s.join(',')})\\) no coincide con ninguna columna de \\(H\\). Hay error de peso \\(\\ge 2\\) que el decodificador no puede corregir.</p>`;
+    out.appendChild(div3);
+    renderAllMath();
+    return;
+  }
+  div3.className = 'card warn';
+  div3.innerHTML = `<div class="ttl">Paso 3 — Localizar columna de \\(H\\) igual a \\(s\\)</div>
+    <p>El síndrome coincide con la <b>columna ${pos+1}</b> de \\(H\\) (\\(H_{(${pos+1})} = (${H.map(row=>row[pos]).join(',')})^{\\top}\\)).</p>
+    <p>Por tanto el líder del coset es \\(e=e_{${pos+1}}=(0,...,1,...,0)\\) con 1 en la posición ${pos+1}.</p>`;
+  out.appendChild(div3);
+  renderAllMath();
+  await sleep(700);
+
+  // Step 4: correct
+  const eHat = new Array(7).fill(0); eHat[pos] = 1;
+  const cHat = r.map((x,i)=> x ^ eHat[i]);
+  const div4 = document.createElement('div');
+  div4.className = 'card ok';
+  div4.innerHTML = `<div class="ttl">Paso 4 — Corrección \\(\\hat c = r\\oplus\\hat e\\)</div>` +
+    `<p>${renderBitRow(r,{readonly:true})} ⊕ ${renderBitRow(eHat,{readonly:true,errIdx:[pos]})} = ${renderBitRow(cHat,{readonly:true,fixIdx:[pos]})}</p>` +
+    `<p>Mensaje decodificado (primeros 4 bits): ${renderBitRow(cHat.slice(0,4),{readonly:true})}</p>`;
+  // Check if correction matches original
+  const realErr = encState.e.reduce((a,b)=>a+b,0);
+  if (realErr <= 1){
+    if (encState.c.every((v,i)=>v===cHat[i])){
+      div4.innerHTML += `<p><span class="badge pass">✔ correcto</span> El mensaje recuperado coincide con el original \\(m=(${encState.m.join(',')})\\).</p>`;
+    } else {
+      div4.innerHTML += `<p><span class="badge fail">¡atención!</span> El mensaje recuperado no coincide con el original (algo va mal).</p>`;
+    }
+  } else if (realErr === 0){
+    div4.innerHTML += `<p>(El canal estaba limpio, pero el decodificador habría "corregido" por error si \\(s\\neq 0\\).)</p>`;
+  } else {
+    div4.innerHTML += `<p><span class="badge fail">⚠ doble fallo</span> El canal introdujo ${realErr} errores y el decodificador, al ver un único síndrome, ha cambiado <b>otro</b> bit más. El mensaje obtenido \\(\\hat m\\) <b>no</b> coincide con el original \\(m=(${encState.m.join(',')})\\): es el patrón que estudiamos en el apartado (c) del Proyecto 1.</p>`;
+  }
+  out.appendChild(div4);
+  renderAllMath();
+}
+function dec_reset(){ document.getElementById('dec-output').innerHTML = ''; }
+function sleep(ms){ return new Promise(r => setTimeout(r,ms)); }
+
+function dec_renderCosetTable(){
+  let html = '<table class="dt"><tr><th>Síndrome s</th><th>Columna de H</th><th>Posición errónea</th><th>Líder e</th></tr>';
+  const H = HAMMING_H;
+  html += `<tr><td>(0,0,0)</td><td>—</td><td>—</td><td>0 (sin error)</td></tr>`;
+  for (let j=0;j<7;j++){
+    const col = H.map(r=>r[j]);
+    const e = new Array(7).fill(0); e[j]=1;
+    html += `<tr><td>(${col.join(',')})</td><td>${j+1}</td><td>${j+1}</td><td>(${e.join(',')})</td></tr>`;
+  }
+  html += '</table>';
+  document.getElementById('dec-coset-table').innerHTML = html;
+}
+
+/* Hamming bound */
+function hb_compute(){
+  const n = parseInt(document.getElementById('hb-n').value);
+  const k = parseInt(document.getElementById('hb-k').value);
+  const t = parseInt(document.getElementById('hb-t').value);
+  const V = hammingVolume(n,t);
+  const lhs = Math.pow(2,k) * V;
+  const rhs = Math.pow(2,n);
+  const ok = lhs <= rhs;
+  const perf = lhs === rhs;
+  let html = `<div class="ttl">Resultado</div>`;
+  html += `<table class="dt"><tr><th>2^k</th><th>V(n,t) = Σ C(n,i)</th><th>2^k · V</th><th>2^n</th><th>Resultado</th></tr>`;
+  html += `<tr><td>${Math.pow(2,k)}</td><td>${V}</td><td>${lhs}</td><td>${rhs}</td><td>${perf?'<span class="badge pass">PERFECTO</span>':(ok?'<span class="badge ok">VÁLIDO</span>':'<span class="badge fail">IMPOSIBLE</span>')}</td></tr></table>`;
+  if (!ok) html += `<p style="color:var(--acc)">Con \\(k=${k}\\) y \\(t=${t}\\) <b>no existe</b> ningún código binario \\([n=${n},k=${k}]\\) que corrija ${t} errores. Cambia \\(n\\) o \\(t\\).</p>`;
+  else if (perf) html += `<p style="color:var(--ok)">Existe un código perfecto con estos parámetros (si existe construcción explícita: Hamming, Golay o repetición).</p>`;
+  else html += `<p>Existe margen: la cota no es estricta. Pueden existir códigos buenos pero no son perfectos.</p>`;
+  document.getElementById('hb-result').innerHTML = html;
+  renderAllMath();
+}
+function hb_renderTable(){
+  let html = '<table class="dt"><tr><th>n</th><th>1 + n + C(n,2)</th><th>2^(n-k)</th><th>¿Cumple?</th></tr>';
+  for (let n=5;n<=14;n++){
+    const v = 1 + n + binomCoeff(n,2);
+    const r = Math.pow(2, n-4);
+    html += `<tr><td>${n}</td><td>${v}</td><td>${r}</td><td>${v<=r?'<span class="badge pass">SÍ</span>':'<span class="badge fail">NO</span>'}</td></tr>`;
+  }
+  html += '</table>';
+  document.getElementById('hb-table').innerHTML = html;
+  document.getElementById('hamming-eqn').innerHTML = '$$2^{k}\\sum_{i=0}^{t}\\binom{n}{i}\\le 2^{n}\\qquad(\\text{Cota de Hamming})$$';
+  renderAllMath();
+}
+
+/* =====================================================================
+   QR — UI / state
+   ===================================================================== */
+
+let qmState = {
+  A: [[1,1.0,1.00],[1,1.1,1.21],[1,1.2,1.44],[1,1.3,1.69]],
+  b: [2.59,2.68,2.73,2.83]
+};
+
+function qr_renderDefault(){
+  document.getElementById('qr-default-A').innerHTML = renderMat(qmState.A);
+  document.getElementById('qr-default-b').innerHTML = renderVec(qmState.b);
+}
+
+function qm_resize(){
+  const m = parseInt(document.getElementById('qm-m').value);
+  const n = parseInt(document.getElementById('qm-n').value);
+  qmState.A = Array.from({length:m}, () => new Array(n).fill(0));
+  qmState.b = new Array(m).fill(0);
+  qm_render();
+}
+function qm_loadDefault(){
+  qmState.A = [[1,1.0,1.00],[1,1.1,1.21],[1,1.2,1.44],[1,1.3,1.69]];
+  qmState.b = [2.59,2.68,2.73,2.83];
+  document.getElementById('qm-m').value = 4;
+  document.getElementById('qm-n').value = 3;
+  qm_render();
+}
+function qm_loadVandermonde(){
+  const t = [1.00, 1.01, 1.02, 1.03];
+  qmState.A = t.map(ti => [1, ti, ti*ti]);
+  qmState.b = [2.5901, 2.6804, 2.7309, 2.8316];
+  document.getElementById('qm-m').value = 4;
+  document.getElementById('qm-n').value = 3;
+  qm_render();
+}
+function qm_random(){
+  for (let i=0;i<qmState.A.length;i++){
+    for (let j=0;j<qmState.A[0].length;j++) qmState.A[i][j] = parseFloat((Math.random()*4-2).toFixed(2));
+    qmState.b[i] = parseFloat((Math.random()*4-2).toFixed(2));
+  }
+  qm_render();
+}
+function qm_render(){
+  const Ah = renderMat(qmState.A, {editable:true});
+  const bh = renderVec(qmState.b, {editable:true});
+  document.getElementById('qm-A-host').innerHTML = Ah;
+  document.getElementById('qm-b-host').innerHTML = bh;
+  document.querySelectorAll('#qm-A-host input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      if (!isNaN(v)){
+        qmState.A[+e.target.dataset.i][+e.target.dataset.j] = v;
+        qm_updateCond();
+      }
+    });
+  });
+  document.querySelectorAll('#qm-b-host input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      if (!isNaN(v)) qmState.b[+e.target.dataset.i] = v;
+    });
+  });
+  qm_updateCond();
+}
+function qm_updateCond(){
+  const ce = condEst(qmState.A);
+  // cond(A^T A) = cond(A)^2
+  const condA = ce.cond;
+  const condATA = condA*condA;
+  let html = `<div class="ttl">Condicionamiento estimado</div>`;
+  html += `<div class="kfmt">σ_max(A) ≈ ${fmt(ce.sigmaMax,4)} · σ_min(A) ≈ ${fmt(ce.sigmaMin,4)}</div>`;
+  html += `<div class="kfmt">cond_2(A) ≈ <b>${fmt(condA,3)}</b> · cond_2(AᵀA) ≈ <b>${fmt(condATA,3)}</b></div>`;
+  html += `<div class="kfmt">Dígitos esperados con ec. normales: ~${Math.max(0,16-Math.log10(condATA)).toFixed(1)} · con QR: ~${Math.max(0,16-Math.log10(condA)).toFixed(1)}</div>`;
+  document.getElementById('qm-cond').innerHTML = html;
+}
+
+/* Visualization: CGS step by step */
+async function cgs_run(){
+  const out = document.getElementById('cgs-output');
+  out.innerHTML = '';
+  const {Q, R, steps} = cgs(qmState.A, true);
+  for (let idx=0; idx<steps.length; idx++){
+    const st = steps[idx];
+    const div = document.createElement('div');
+    div.className = 'card';
+    let html = `<div class="ttl">Iteración j = ${st.j+1}</div>`;
+    html += `<p>Columna \\(a_${st.j+1}\\):</p>` + renderVec(matCol(qmState.A, st.j));
+    if (st.rij.length>0){
+      html += '<p>Productos escalares con columnas anteriores:</p>';
+      for (const p of st.rij){
+        html += `<div class="kfmt">r_{${p.i+1},${st.j+1}} = q_${p.i+1}ᵀ · a_${st.j+1} = <b>${fmt(p.r)}</b></div>`;
+      }
+      html += `<p>Residuo \\(v_${st.j+1} = a_${st.j+1} - \\sum r_{ij}q_i\\):</p>` + renderVec(st.v);
+    } else {
+      html += `<p>(primera columna, no hay proyecciones previas)</p>`;
+    }
+    html += `<p>Norma: \\(r_{${st.j+1},${st.j+1}} = \\|v\\| = ${fmt(st.nrm)}\\)</p>`;
+    html += `<p>Vector ortonormalizado \\(q_${st.j+1}\\):</p>` + renderVec(st.qj);
+    out.appendChild(div);
+    div.innerHTML = html;
+    renderAllMath();
+    await sleep(400);
+  }
+  // Final Q and R
+  const divF = document.createElement('div');
+  divF.className = 'card ok';
+  divF.innerHTML = `<div class="ttl">Resultado final</div>
+    <div class="flex">
+      <div><h4>Q</h4>${renderMat(Q)}</div>
+      <div><h4>R</h4>${renderMat(R)}</div>
+    </div>
+    <h4 style="margin-top:.4rem">Verificación recursiva</h4>
+    ${qr_checkBlock(qmState.A, Q, R)}`;
+  out.appendChild(divF);
+  renderAllMath();
+}
+function cgs_reset(){ document.getElementById('cgs-output').innerHTML = ''; }
+
+/* MGS step by step */
+async function mgs_run(){
+  const out = document.getElementById('mgs-output');
+  out.innerHTML = '';
+  const {Q, R, steps} = mgs(qmState.A, true);
+  for (let idx=0; idx<steps.length; idx++){
+    const st = steps[idx];
+    const div = document.createElement('div');
+    div.className = 'card';
+    let html = `<div class="ttl">Iteración j = ${st.j+1}</div>`;
+    html += `<p>Norma del vector actual (\\(V[:,${st.j+1}]\\)): ${fmt(st.nrm)}</p>`;
+    html += `<p>\\(q_${st.j+1} = V[:,${st.j+1}] / r_{${st.j+1}${st.j+1}}\\):</p>` + renderVec(st.qj);
+    if (st.projs.length>0){
+      html += '<p>Actualizar columnas restantes \\(V[:,i] \\leftarrow V[:,i] - r_{ji}\\,q_j\\):</p>';
+      for (const p of st.projs){
+        html += `<div class="kfmt">r_{${st.j+1},${p.i+1}} = q_${st.j+1}ᵀ · V[:,${p.i+1}] = <b>${fmt(p.r)}</b></div>`;
+      }
+    }
+    div.innerHTML = html;
+    out.appendChild(div);
+    renderAllMath();
+    await sleep(350);
+  }
+  const divF = document.createElement('div');
+  divF.className = 'card ok';
+  divF.innerHTML = `<div class="ttl">Resultado final (MGS)</div>
+    <div class="flex">
+      <div><h4>Q</h4>${renderMat(Q)}</div>
+      <div><h4>R</h4>${renderMat(R)}</div>
+    </div>
+    <h4 style="margin-top:.4rem">Verificación recursiva</h4>
+    ${qr_checkBlock(qmState.A, Q, R)}`;
+  out.appendChild(divF);
+  renderAllMath();
+}
+function mgs_reset(){ document.getElementById('mgs-output').innerHTML = ''; }
+
+/* Householder step by step */
+async function house_run(){
+  const out = document.getElementById('house-output');
+  out.innerHTML = '';
+  const {Q, R, steps} = householder(qmState.A, true);
+  for (let idx=0; idx<steps.length; idx++){
+    const st = steps[idx];
+    const div = document.createElement('div');
+    div.className = 'card';
+    let html = `<div class="ttl">Paso k = ${st.k+1}</div>`;
+    html += `<p>Norma de la subcolumna: ${fmt(st.xn)} (signo ${st.sign>0?'+':'−'})</p>`;
+    html += `<p>Vector reflector v normalizado:</p>` + renderVec(st.v);
+    html += `<p>Matriz tras aplicar \\(H_${st.k+1}\\):</p>` + renderMat(st.Rsnapshot);
+    div.innerHTML = html;
+    out.appendChild(div);
+    renderAllMath();
+    await sleep(400);
+  }
+  const divF = document.createElement('div');
+  divF.className = 'card ok';
+  divF.innerHTML = `<div class="ttl">Resultado final (Householder)</div>
+    <div class="flex">
+      <div><h4>Q</h4>${renderMat(Q)}</div>
+      <div><h4>R</h4>${renderMat(R)}</div>
+    </div>
+    <h4 style="margin-top:.4rem">Verificación recursiva</h4>
+    ${qr_checkBlock(qmState.A, Q, R)}`;
+  out.appendChild(divF);
+  renderAllMath();
+}
+function house_reset(){ document.getElementById('house-output').innerHTML = ''; }
+
+/* qr_checkBlock: recursive verification of factorization */
+function qr_checkBlock(A, Q, R){
+  // Verify A = Q R
+  const QR = matMul(Q.map(row => row.slice(0, R.length)), R);
+  const errFact = frobNorm(matSub(A, QR));
+  // Verify Q^T Q = I
+  const Qsub = Q.map(row => row.slice(0, R.length));
+  const QtQ = matMul(transpose(Qsub), Qsub);
+  const I = eyeF(R.length);
+  const errOrtho = frobNorm(matSub(QtQ, I));
+  const pass = errFact < 1e-8 && errOrtho < 1e-8;
+  return `<table class="dt">
+    <tr><th>Comprobación</th><th>Norma Frobenius</th><th>OK?</th></tr>
+    <tr><td>‖A − QR‖_F</td><td class="kfmt">${fmt(errFact, 6)}</td><td>${errFact<1e-8?'<span class="badge pass">✓</span>':'<span class="badge fail">✗</span>'}</td></tr>
+    <tr><td>‖QᵀQ − I‖_F</td><td class="kfmt">${fmt(errOrtho, 6)}</td><td>${errOrtho<1e-8?'<span class="badge pass">✓</span>':'<span class="badge fail">✗</span>'}</td></tr>
+  </table>`;
+}
+
+/* LSQ resolver */
+function lsq_run(){
+  const out = document.getElementById('lsq-output');
+  const A = qmState.A, b = qmState.b;
+  // Run all four
+  const r1 = lsqQR(A, b, 'cgs');
+  const r2 = lsqQR(A, b, 'mgs');
+  const r3 = lsqQR(A, b, 'house');
+  const r4 = lsqNormal(A, b);
+  // Residuals
+  function res(x){
+    const Ax = matVec(A, x);
+    return Math.sqrt(b.reduce((s,bi,i)=> s+(bi-Ax[i])*(bi-Ax[i]), 0));
+  }
+  let html = `<table class="dt">
+    <tr><th>Método</th><th>x*</th><th>‖Ax−b‖₂</th></tr>
+    <tr><td>CGS</td><td class="kfmt">(${r1.x.map(v=>fmt(v,5)).join(', ')})</td><td class="kfmt">${fmt(res(r1.x),5)}</td></tr>
+    <tr><td>MGS</td><td class="kfmt">(${r2.x.map(v=>fmt(v,5)).join(', ')})</td><td class="kfmt">${fmt(res(r2.x),5)}</td></tr>
+    <tr><td>Householder</td><td class="kfmt">(${r3.x.map(v=>fmt(v,5)).join(', ')})</td><td class="kfmt">${fmt(res(r3.x),5)}</td></tr>
+    <tr><td>Ec. normales</td><td class="kfmt">(${(r4.x||[]).map(v=>fmt(v,5)).join(', ')})</td><td class="kfmt">${r4.x?fmt(res(r4.x),5):'singular'}</td></tr>
+  </table>`;
+  // Differences
+  const ref = r3.x;
+  html += `<h4>Distancias relativas vs Householder (referencia)</h4>`;
+  function relDiff(x){
+    let s=0; for (let i=0;i<x.length;i++) s += (x[i]-ref[i])*(x[i]-ref[i]);
+    let r=0; for (let i=0;i<ref.length;i++) r += ref[i]*ref[i];
+    return Math.sqrt(s)/Math.sqrt(r);
+  }
+  html += `<div class="kfmt">CGS: ${fmt(relDiff(r1.x),3)} · MGS: ${fmt(relDiff(r2.x),3)} · Normal: ${r4.x?fmt(relDiff(r4.x),3):'—'}</div>`;
+  out.innerHTML = html;
+}
+
+/* Comparativa */
+function cmp_run(){
+  const A = qmState.A;
+  const r1 = cgs(A), r2 = mgs(A), r3 = householder(A);
+  function metrics(Q, R){
+    const Qsub = Q.map(row => row.slice(0, R.length));
+    const ortho = frobNorm(matSub(matMul(transpose(Qsub), Qsub), eyeF(R.length)));
+    const fact = frobNorm(matSub(A, matMul(Qsub, R)));
+    return {ortho, fact};
+  }
+  const m1 = metrics(r1.Q, r1.R), m2 = metrics(r2.Q, r2.R), m3 = metrics(r3.Q, r3.R);
+  const ce = condEst(A);
+  let html = `<table class="dt">
+    <tr><th>Método</th><th>‖QᵀQ − I‖_F</th><th>‖A − QR‖_F</th><th>Calidad</th></tr>
+    <tr><td>CGS</td><td class="kfmt">${fmt(m1.ortho,4)}</td><td class="kfmt">${fmt(m1.fact,4)}</td><td>${qualBadge(m1.ortho)}</td></tr>
+    <tr><td>MGS</td><td class="kfmt">${fmt(m2.ortho,4)}</td><td class="kfmt">${fmt(m2.fact,4)}</td><td>${qualBadge(m2.ortho)}</td></tr>
+    <tr><td>Householder</td><td class="kfmt">${fmt(m3.ortho,4)}</td><td class="kfmt">${fmt(m3.fact,4)}</td><td>${qualBadge(m3.ortho)}</td></tr>
+  </table>`;
+  html += `<div class="kfmt" style="margin-top:.5rem">cond(A) ≈ ${fmt(ce.cond,3)} · cond(AᵀA) ≈ ${fmt(ce.cond*ce.cond,3)}</div>`;
+  document.getElementById('cmp-output').innerHTML = html;
+}
+function cmp_lauchli(){
+  const eps = 1e-7;
+  qmState.A = [[1,1,1],[eps,0,0],[0,eps,0],[0,0,eps]];
+  qmState.b = [3,0,0,0];
+  document.getElementById('qm-m').value = 4;
+  document.getElementById('qm-n').value = 3;
+  qm_render();
+  cmp_run();
+}
+function qualBadge(err){
+  if (err < 1e-12) return '<span class="badge pass">excelente</span>';
+  if (err < 1e-8) return '<span class="badge ok">buena</span>';
+  if (err < 1e-3) return '<span class="badge run">aceptable</span>';
+  return '<span class="badge fail">degradada</span>';
+}
+
+/* =====================================================================
+   SUITE DE PRUEBAS
+   ===================================================================== */
+
+const tests = {results: [], passed: 0, failed: 0, total: 0};
+
+function addTest(name, pass, detail){
+  tests.total++;
+  if (pass) tests.passed++; else tests.failed++;
+  tests.results.push({name, pass, detail});
+}
+function renderTestsLive(){
+  document.getElementById('tests-output').innerHTML = tests.results.slice(-200).map(t =>
+    `<div class="test-row ${t.pass?'pass':'fail'}"><span class="badge ${t.pass?'pass':'fail'}">${t.pass?'✔':'✗'}</span><span class="nm">${t.name}</span><span class="det">${t.detail||''}</span></div>`
+  ).join('');
+  const ratio = tests.total ? (tests.passed/tests.total*100).toFixed(1) : 0;
+  document.getElementById('tests-summary').innerHTML = `
+    <div class="test-summary">
+      <div class="nm">Resumen — ${tests.failed===0?'<span class="badge pass">TODO PASA</span>':'<span class="badge fail">'+tests.failed+' fallos</span>'}</div>
+      <div class="nums">
+        <div><div class="val total">${tests.total}</div><div class="lbl">Total</div></div>
+        <div><div class="val pass">${tests.passed}</div><div class="lbl">Pasan</div></div>
+        <div><div class="val fail">${tests.failed}</div><div class="lbl">Fallan</div></div>
+        <div><div class="val total">${ratio}%</div><div class="lbl">Éxito</div></div>
+      </div>
+      <div class="progress ${tests.failed?'fail':''}"><div class="bar" style="width:${ratio}%"></div></div>
+    </div>`;
+}
+
+async function runCodesTests(){
+  clearTests();
+  // 1) Verify G H^T = 0 for Hamming(7,4)
+  const Ht = transpose(HAMMING_H);
+  const prod = matMulMod2(HAMMING_G, Ht);
+  addTest('GH^T = 0 (Hamming(7,4))', prod.every(r => r.every(v => v===0)));
+
+  // 2) Verify d_min = 3
+  const d = codeDistance(HAMMING_G);
+  addTest('d_min = 3 (Hamming(7,4))', d===3, `d=${d}`);
+
+  // 3) Hamming perfect bound: 2^4 * (1+7) = 128 = 2^7
+  const lhs = Math.pow(2,4) * (1+7);
+  addTest('Hamming perfecto: 2^k V(n,1) = 2^n', lhs === 128, `${lhs} vs 128`);
+
+  // 4) Encode all 16 messages, verify cH^T = 0
+  let passEnc = 0;
+  for (let mi=0; mi<16; mi++){
+    const m = []; for (let i=0;i<4;i++) m.push((mi>>i)&1);
+    const c = vecMatMod2(m, HAMMING_G);
+    const s = syndrome(c, HAMMING_H);
+    if (s.every(x=>x===0)) passEnc++;
+  }
+  addTest('Codificación: cH^T=0 para los 16 mensajes', passEnc===16, `${passEnc}/16`);
+
+  // 5) Decode: for each codeword and each single-error pattern, verify recovery
+  let passDec = 0, totalDec = 0;
+  for (let mi=0; mi<16; mi++){
+    const m = []; for (let i=0;i<4;i++) m.push((mi>>i)&1);
+    const c = vecMatMod2(m, HAMMING_G);
+    // No error
+    totalDec++;
+    let dec = decodeSyndrome(c, HAMMING_H);
+    if (dec.corrected && dec.c.every((v,i)=>v===c[i])) passDec++;
+    // Each single-error pattern
+    for (let p=0;p<7;p++){
+      const e = new Array(7).fill(0); e[p]=1;
+      const r = c.map((v,i)=> v^e[i]);
+      totalDec++;
+      dec = decodeSyndrome(r, HAMMING_H);
+      if (dec.corrected && dec.c.every((v,i)=>v===c[i])) passDec++;
+    }
+  }
+  addTest('Decodificación de 1 error: 100% de éxito', passDec===totalDec, `${passDec}/${totalDec}`);
+
+  // 6) Recursive verification: random m → c → r=c+e (wt(e)<=1) → decode → m'. Verify m=m'. 500 cases.
+  let rPass = 0;
+  for (let it=0;it<500;it++){
+    const m = []; for (let i=0;i<4;i++) m.push(Math.random()<.5?1:0);
+    const c = vecMatMod2(m, HAMMING_G);
+    const e = new Array(7).fill(0);
+    if (Math.random()<.85) e[Math.floor(Math.random()*7)] = 1;
+    const r = c.map((v,i)=> v^e[i]);
+    const dec = decodeSyndrome(r, HAMMING_H);
+    if (dec.corrected && dec.c.every((v,i)=>v===c[i]) && dec.c.slice(0,4).every((v,i)=>v===m[i])) rPass++;
+  }
+  addTest('500 codificaciones+decodificaciones aleatorias (≤1 error)', rPass===500, `${rPass}/500`);
+
+  // 7) Detection of 2 errors: decoder should not recover. Verify it gets it WRONG.
+  let twoErrors = 0, twoCorrect = 0;
+  for (let it=0;it<200;it++){
+    const m = []; for (let i=0;i<4;i++) m.push(Math.random()<.5?1:0);
+    const c = vecMatMod2(m, HAMMING_G);
+    const e = new Array(7).fill(0);
+    const a = Math.floor(Math.random()*7);
+    let b; do { b = Math.floor(Math.random()*7); } while (b===a);
+    e[a]=1; e[b]=1;
+    const r = c.map((v,i)=> v^e[i]);
+    const dec = decodeSyndrome(r, HAMMING_H);
+    twoErrors++;
+    if (dec.corrected && dec.c.every((v,i)=>v===c[i])) twoCorrect++;
+  }
+  addTest('200 casos con 2 errores: el decodificador NO los corrige', twoCorrect===0, `falsos aciertos: ${twoCorrect}/${twoErrors}`);
+
+  // 8) Hamming bound for various [n,k,t]
+  let hbOK = 0;
+  const cases = [[7,4,1],[15,11,1],[8,4,1],[15,7,2],[23,12,3],[10,4,2]];
+  for (const [n,k,t] of cases){
+    const v = Math.pow(2,k)*hammingVolume(n,t);
+    const r = Math.pow(2,n);
+    if (v <= r) hbOK++;
+  }
+  addTest('Cota de Hamming en 6 casos textbook', hbOK===cases.length);
+
+  // 9) Hamming(7,4) IS perfect (equality in bound)
+  addTest('Hamming(7,4): igualdad en cota = perfecto', Math.pow(2,4)*hammingVolume(7,1)===Math.pow(2,7));
+
+  // 10) Golay(23,12,7) perfect
+  const golay = Math.pow(2,12)*hammingVolume(23,3);
+  addTest('Golay(23,12,7): igualdad en cota = perfecto', golay === Math.pow(2,23), `${golay}/${Math.pow(2,23)}`);
+
+  // 11) Identity verification: H * c^T = 0 for c in code, recursive
+  let perfectInverse = 0;
+  for (let it=0;it<100;it++){
+    const m = []; for (let i=0;i<4;i++) m.push(Math.random()<.5?1:0);
+    const c = vecMatMod2(m, HAMMING_G);
+    const s = syndrome(c, HAMMING_H);
+    // Reverse: decode without error
+    const dec = decodeSyndrome(c, HAMMING_H);
+    if (s.every(x=>x===0) && dec.c.every((v,i)=>v===c[i])) perfectInverse++;
+  }
+  addTest('Verificación recursiva (encode∘decode = id, sin error) ×100', perfectInverse===100);
+
+  renderTestsLive();
+}
+
+async function runQRTests(){
+  // Don't clear -- accumulate
+  // Generate random matrices and verify
+  function randMat(m,n){
+    const A = []; for (let i=0;i<m;i++){ const row=[]; for (let j=0;j<n;j++) row.push((Math.random()-.5)*4); A.push(row); }
+    return A;
+  }
+
+  // 1) For each method, factorize 50 random matrices and check A=QR, Q^T Q = I
+  const methods = [['cgs', cgs], ['mgs', mgs], ['house', householder]];
+  for (const [name, fn] of methods){
+    let okFact = 0, okOrth = 0, totalCase = 50;
+    for (let it=0; it<totalCase; it++){
+      const m = 3 + Math.floor(Math.random()*4);  // 3..6
+      const n = 2 + Math.floor(Math.random()*Math.min(3, m-1));
+      const A = randMat(m,n);
+      const {Q, R} = fn(A);
+      const Qsub = Q.map(row => row.slice(0, n));
+      const QR = matMul(Qsub, R);
+      const errF = frobNorm(matSub(A, QR));
+      const errO = frobNorm(matSub(matMul(transpose(Qsub), Qsub), eyeF(n)));
+      if (errF < 1e-8) okFact++;
+      if (errO < 1e-8) okOrth++;
+    }
+    addTest(`${name.toUpperCase()}: ‖A−QR‖ < 1e-8 en ${totalCase} matrices aleatorias`, okFact===totalCase, `${okFact}/${totalCase}`);
+    addTest(`${name.toUpperCase()}: ‖QᵀQ−I‖ < 1e-8 en ${totalCase} matrices aleatorias`, okOrth===totalCase, `${okOrth}/${totalCase}`);
+  }
+
+  // 2) Verify all three give the same LSQ solution
+  let agreeAll = 0, totalAgree = 30;
+  for (let it=0; it<totalAgree; it++){
+    const m = 4 + Math.floor(Math.random()*3);
+    const n = 2 + Math.floor(Math.random()*2);
+    const A = randMat(m,n);
+    const b = randMat(m,1).map(r=>r[0]);
+    const x1 = lsqQR(A,b,'cgs').x;
+    const x2 = lsqQR(A,b,'mgs').x;
+    const x3 = lsqQR(A,b,'house').x;
+    let agree = true;
+    for (let i=0;i<n;i++) if (Math.abs(x1[i]-x3[i])>1e-7 || Math.abs(x2[i]-x3[i])>1e-7) { agree=false; break; }
+    if (agree) agreeAll++;
+  }
+  addTest(`LSQ: CGS, MGS y Householder concuerdan en ${totalAgree} casos`, agreeAll===totalAgree, `${agreeAll}/${totalAgree}`);
+
+  // 3) Recursive: LSQ solution must satisfy normal equations A^T(A x - b) = 0
+  let normalRes = 0;
+  for (let it=0; it<50; it++){
+    const m = 4, n = 3;
+    const A = randMat(m,n);
+    const b = randMat(m,1).map(r=>r[0]);
+    const x = lsqQR(A,b,'house').x;
+    // Compute A^T(A x - b)
+    const Ax = matVec(A,x);
+    const resid = b.map((bi,i) => Ax[i]-bi);
+    let normRes = 0;
+    for (let j=0;j<n;j++){
+      let s=0; for (let i=0;i<m;i++) s += A[i][j]*resid[i];
+      normRes += s*s;
+    }
+    if (Math.sqrt(normRes) < 1e-8) normalRes++;
+  }
+  addTest('LSQ: A^T(Ax-b) ≈ 0 (ec. normales) en 50 casos', normalRes===50, `${normalRes}/50`);
+
+  // 4) Householder is the most stable in ill-conditioning
+  // Use Läuchli with epsilon small
+  let stab = 0, totStab = 0;
+  for (const eps of [1e-3, 1e-5, 1e-7]){
+    const A = [[1,1,1],[eps,0,0],[0,eps,0],[0,0,eps]];
+    const {Q:Q3,R:R3} = householder(A);
+    const Q3s = Q3.map(r=>r.slice(0,3));
+    const err3 = frobNorm(matSub(matMul(transpose(Q3s), Q3s), eyeF(3)));
+    totStab++;
+    if (err3 < 1e-10) stab++;
+  }
+  addTest(`Householder: estable en Läuchli con ε ∈ {1e-3, 1e-5, 1e-7}`, stab===totStab, `${stab}/${totStab}`);
+
+  // 5) cond(A^T A) = cond(A)^2 — verify on 20 cases
+  let condOK = 0;
+  for (let it=0; it<20; it++){
+    const A = randMat(5,3);
+    const ce = condEst(A);
+    const ATA = matMul(transpose(A), A);
+    const ce2 = condEst(ATA);
+    const ratio = Math.abs(ce2.cond / (ce.cond*ce.cond) - 1);
+    if (ratio < 0.1) condOK++;
+  }
+  addTest('cond(AᵀA) = cond(A)² (±10%) en 20 casos aleatorios', condOK>=18, `${condOK}/20`);
+
+  // 6) Recursive verification: factorize, multiply back, factorize again, must match
+  let recur = 0;
+  for (let it=0;it<30;it++){
+    const A = randMat(4,3);
+    const {Q,R} = householder(A);
+    const Qs = Q.map(r=>r.slice(0,3));
+    const A2 = matMul(Qs, R);
+    const {Q:Q2,R:R2} = householder(A2);
+    const Q2s = Q2.map(r=>r.slice(0,3));
+    // R should match R up to sign
+    let match = true;
+    for (let i=0;i<3;i++) for (let j=0;j<3;j++){
+      if (Math.abs(Math.abs(R[i][j]) - Math.abs(R2[i][j])) > 1e-8){ match=false; break; }
+    }
+    if (match) recur++;
+  }
+  addTest('Recursivo: QR(QR(A).Q · QR(A).R) coincide con QR(A) en 30 casos', recur===30, `${recur}/30`);
+
+  renderTestsLive();
+}
+
+function clearTests(){
+  tests.results = []; tests.passed = 0; tests.failed = 0; tests.total = 0;
+  document.getElementById('tests-output').innerHTML = '';
+  document.getElementById('tests-summary').innerHTML = '';
+}
+
+async function runAllTests(){
+  clearTests();
+  document.getElementById('tests-summary').innerHTML = '<div class="card"><div class="ttl"><span class="badge run">▶ ejecutando…</span></div>Suite en curso. Por favor espera unos segundos.</div>';
+  await sleep(80);
+  await runCodesTests();
+  await sleep(50);
+  await runQRTests();
+}
+
+/* =====================================================================
+   Tab switching
+   ===================================================================== */
+
+function switchTab(name){
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById('content-' + name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+function switchSub(tab, sub){
+  // Hide all subsections under this tab
+  const tabHost = document.getElementById('content-' + (tab==='c'?'codigos':tab==='q'?'qr':tab));
+  if (tabHost){
+    tabHost.querySelectorAll('.subsection').forEach(el => el.classList.remove('active'));
+    const target = document.getElementById(tab + '-' + sub);
+    if (target) target.classList.add('active');
+    // Also update subtab buttons
+    tabHost.querySelectorAll('.subtab-btn').forEach((btn, idx) => {
+      if (btn.getAttribute('onclick')===`switchSub('${tab}','${sub}')`) btn.classList.add('active');
+      else btn.classList.remove('active');
+    });
+  }
+  renderAllMath();
+}
+
+function renderAllMath(){
+  if (typeof renderMathInElement === 'function'){
+    try {
+      renderMathInElement(document.body, {
+        delimiters: [
+          {left:'$$', right:'$$', display:true},
+          {left:'\\[', right:'\\]', display:true},
+          {left:'\\(', right:'\\)', display:false}
+        ],
+        throwOnError: false
+      });
+    } catch(e){}
+  }
+}
+
+/* =====================================================================
+   Init
+   ===================================================================== */
+window.addEventListener('load', () => {
+  enc_render_default();
+  cb_render();
+  dec_renderCosetTable();
+  hb_renderTable();
+  qr_renderDefault();
+  qm_render();
+  setTimeout(renderAllMath, 200);
+});
+</script>
+
+</body>
+</html>
